@@ -7,25 +7,8 @@ import (
 )
 
 func TestGenerateRandomElementsZeroSize(t *testing.T) {
-	_, err := generateRandomElements(0)
-	require.ErrorIs(t, err, ErrZeroSize)
-}
-
-func TestMaximumEmptySlice(t *testing.T) {
-	_, err := maximum([]int{})
-	require.ErrorIs(t, err, ErrEmptySlice)
-}
-
-func TestMaximumSliceLenOne(t *testing.T) {
-	res, err := maximum([]int{8})
-	require.NoError(t, err)
-	require.Equal(t, 8, res)
-}
-
-func TestMaximumValues(t *testing.T) {
-	res, err := maximum([]int{1, 2, 5, 10, 5, 4, 3})
-	require.NoError(t, err)
-	require.Equal(t, 10, res)
+	res := generateRandomElements(0)
+	require.Equal(t, res, []int{})
 }
 
 func TestMaximumValuesThreadedLessThanCHUNKS(t *testing.T) {
@@ -36,13 +19,31 @@ func TestMaximumValuesThreadedLessThanCHUNKS(t *testing.T) {
 	for i := 0; i < CHUNKS-1; i++ {
 		arr = append(arr, 10)
 	}
-	_, err := maxChunks(arr)
-	require.ErrorIs(t, err, ErrDataLenLessThanThreads)
+	res := maxChunks(arr)
+	require.Equal(t, 0, res)
 }
 
 func TestMaximumValuesThreadedOK(t *testing.T) {
 	arr := []int{1, 2, 5, 45, 12, 5, 100, 65}
-	res, err := maxChunks(arr)
-	require.NoError(t, err)
+	res := maxChunks(arr)
 	require.Equal(t, 100, res)
+
+}
+
+func TestMaximumValues(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    []int
+		expected int
+	}{
+		{"EmptySlice", []int{}, 0},
+		{"SliceLenOne", []int{8}, 8},
+		{"NormalValues", []int{1, 2, 5, 10, 5, 4, 3}, 10},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			require.Equal(t, testCase.expected, maximum(testCase.input))
+		})
+	}
 }

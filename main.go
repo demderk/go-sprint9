@@ -1,10 +1,8 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
-	"slices"
 	"sync"
 	"time"
 )
@@ -14,74 +12,51 @@ const (
 	CHUNKS = 8
 )
 
-var (
-	ErrZeroSize               = errors.New("size must be greater than zero")
-	ErrEmptySlice             = errors.New("input slice is empty")
-	ErrDataLenLessThanThreads = errors.New("data len less than threads (CHUNKS)")
-)
-
 // generateRandomElements generates random elements.
-func generateRandomElements(size int) ([]int, error) {
+func generateRandomElements(size int) []int {
 	arr := []int{}
-	if size < 1 {
-		return []int{}, ErrZeroSize
-	}
 
 	for i := 0; i < size; i++ {
 		rnd := rand.Int31()
 		arr = append(arr, int(rnd))
 	}
-	return arr, nil
+	return arr
 }
 
 // maximum returns the maximum number of elements.
-func maximum(data []int) (int, error) {
-	if len(data) < 1 {
-		return 0, ErrEmptySlice
+func maximum(data []int) int {
+	max := 0
+	for i := 0; i < len(data); i++ {
+		if max < data[i] {
+			max = data[i]
+		}
 	}
-	return slices.Max(data), nil // :))
+	return max
 }
 
 // maxChunks returns the maximum number of elements in a chunks.
-func maxChunks(data []int) (int, error) {
+func maxChunks(data []int) int {
 	if len(data) < CHUNKS {
-		return 0, ErrDataLenLessThanThreads
+		return 0
 	}
 
-	chunksMax := []int{}
+	chunksMax := make([]int, CHUNKS)
 	chunkSize := len(data) / CHUNKS
 
 	var wait sync.WaitGroup
-	var mu sync.Mutex
+
 	wait.Add(CHUNKS)
-
-	errCh := make(chan error, 1)
-
 	for i := 0; i < CHUNKS; i++ {
 		go func(i int) {
 			defer wait.Done()
 			start := chunkSize * i
 			end := min(start+chunkSize, len(data))
-			max, err := maximum(data[start:end])
-			if err != nil {
-				select {
-				case errCh <- err:
-					return
-				default:
-					return
-				}
-			}
-			mu.Lock()
-			chunksMax = append(chunksMax, max)
-			mu.Unlock()
+			max := maximum(data[start:end])
+
+			chunksMax[i] = max
 		}(i)
 	}
 	wait.Wait()
-	close(errCh)
-
-	if err, ok := <-errCh; ok {
-		return 0, fmt.Errorf("maxChunks goroutine was failed: %w", err)
-	}
 
 	return maximum(chunksMax)
 }
@@ -90,17 +65,11 @@ func main() {
 	// С go 1.20 rand.seed – Deprecated (по данным VSCode). Тут не забыл, это осознанно.
 
 	fmt.Printf("Генерируем %d целых чисел", SIZE)
-	randomData, err := generateRandomElements(SIZE)
-	if err != nil {
-		fmt.Printf("random number generation was failed: %v", err)
-	}
+	randomData := generateRandomElements(SIZE)
 
 	fmt.Println("Ищем максимальное значение в один поток")
 	timeStart := time.Now()
-	max, err := maximum(randomData)
-	if err != nil {
-		fmt.Printf("non-threaded generation was failed: %v", err)
-	}
+	max := maximum(randomData)
 
 	elapsedNonThreaded := time.Since(timeStart)
 
@@ -109,11 +78,7 @@ func main() {
 	fmt.Printf("Ищем максимальное значение в %d потоков\n", CHUNKS)
 
 	timeStart = time.Now()
-	max, err = maxChunks(randomData)
-	if err != nil {
-		fmt.Printf("threaded generation was failed: %v", err)
-		return
-	}
+	max = maxChunks(randomData)
 
 	elapsedThreaded := time.Since(timeStart)
 
