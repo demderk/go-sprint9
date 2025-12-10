@@ -25,7 +25,10 @@ func generateRandomElements(size int) []int {
 
 // maximum returns the maximum number of elements.
 func maximum(data []int) int {
-	max := 0
+	if len(data) < 1 {
+		return 0
+	}
+	max := data[0]
 	for i := 0; i < len(data); i++ {
 		if max < data[i] {
 			max = data[i]

@@ -39,6 +39,7 @@ func TestMaximumValues(t *testing.T) {
 		{"EmptySlice", []int{}, 0},
 		{"SliceLenOne", []int{8}, 8},
 		{"NormalValues", []int{1, 2, 5, 10, 5, 4, 3}, 10},
+		{"Negative values", []int{-1, -2, -3}, -1},
 	}
 
 	for _, testCase := range testCases {
